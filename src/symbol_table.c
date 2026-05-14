@@ -8,6 +8,10 @@ extern int yylineno;
 struct SymbolTable *current_scope = NULL;
 enum SEMANTIC_ERROR semantic_error = NO_ERROR;
 
+/* Tracks every SymbolTable allocated via scope_down so that
+   destroy_global_table can free all scopes (not just the global one). */
+static struct SymbolTable **all_scopes = NULL;
+
 size_t string_hash(char *string)
 {
     assert(string != NULL);
@@ -84,6 +88,7 @@ void scope_down()
     struct SymbolTable *new_scope = create_table();
     new_scope->parent = current_scope;
     current_scope = new_scope;
+    arrput(all_scopes, new_scope);
 }
 
 void scope_up()
@@ -99,9 +104,10 @@ void scope_up()
             head = next;
         }
     }
-    struct SymbolTable *old_scope = current_scope;
-    current_scope = old_scope->parent;
-    // destroy_table(old_scope);
+    /* The scope itself is kept alive so that AST nodes referencing entries
+       in it remain valid during code generation. All scopes are freed
+       together by destroy_global_table. */
+    current_scope = current_scope->parent;
 }
 
 struct SymbolTableEntry *lookup(char *identifier, _Bool func, _Bool need_init, _Bool init)
@@ -317,24 +323,52 @@ void delete_array(enum TYPE **arr)
     }
 }
 
+/* Returns 1 if `ptr` was newly added to *seen, 0 if it was already present.
+   *seen is an stb_ds dynamic array of unique pointers. */
+static int seen_add(enum TYPE ***seen, enum TYPE *ptr)
+{
+    if (ptr == NULL)
+        return 0;
+    for (unsigned int i = 0; i < arrlen(*seen); i++)
+        if ((*seen)[i] == ptr)
+            return 0;
+    arrput(*seen, ptr);
+    return 1;
+}
+
 void destroy_table(struct SymbolTable *table)
 {
+    enum TYPE **freed_types = NULL;
     for (unsigned int i = 0; i < ST_ARRAY_SIZE; i++)
     {
         struct SymbolTableEntry *head = table->buckets[i];
         while (head != NULL)
         {
             struct SymbolTableEntry *next = head->next;
-            delete_array(&head->types);
+            /* `types` arrays are shared across identifiers in the same
+               declaration (e.g. `int a, b, c;`), so free each unique
+               pointer only once. */
+            if (seen_add(&freed_types, head->types))
+                delete_array(&head->types);
+            free(head->name);
             free(head);
             head = next;
         }
     }
+    arrfree(freed_types);
 
     free(table);
 }
 
 void destroy_global_table()
 {
-    destroy_table(current_scope);
+    /* Free every scope ever created via scope_down (non-global scopes are
+       no longer torn down in scope_up so that AST nodes can keep using
+       their SymbolTableEntry pointers during code generation). The global
+       scope is included in all_scopes since it too is created via
+       scope_down. */
+    for (unsigned int i = 0; i < arrlen(all_scopes); i++)
+        destroy_table(all_scopes[i]);
+    arrfree(all_scopes);
+    current_scope = NULL;
 }
