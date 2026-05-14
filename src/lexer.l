@@ -1,5 +1,8 @@
 %{
     #include "y.tab.h"
+
+    static int decode_escape(const char *s, int *consumed);
+    static char *process_string_escapes(const char *src, int len, int *out_len);
 %}
 
 %option nounput noinput
@@ -11,8 +14,7 @@ H   [0-9a-fA-F]
 %%
 
     /* Comments and whitespace ignored. */
-    /* TODO: Fix comments ending with '**\/' not ending. */
-\/\*((\*[^\/])|[^*])*\*\/           ;
+"/*"([^*]|\*+[^*/])*\*+"/"          ;
 \/\/.*                              ;
 [ \t\r\n]+                          ;
 
@@ -103,18 +105,18 @@ H   [0-9a-fA-F]
 0[xX]{H}+\.?[pP][+-]?{H}+           { yylval.float_value = strtod(yytext, NULL);         return FLOAT_LITERAL; }
 0[xX]{H}*\.{H}+[pP][+-]?{H}+        { yylval.float_value = strtod(yytext, NULL);         return FLOAT_LITERAL; }
 
-\'[^']\'                            { yylval.char_value = yytext[1];                     return CHAR_LITERAL; }
-\"[^"]*\"                           { 
-                                        yylval.string_value = malloc(yyleng);    // Freed after use in parser.
-                                        strncpy(yylval.string_value, yytext + 1, yyleng - 2);
-                                        yylval.string_value[yyleng - 2] = '\0';
+\'(\\.|\\x[0-9a-fA-F]+|\\[0-7]{1,3}|[^'\\])\'  { 
+                                        int consumed = 0;
+                                        if (yytext[1] == '\\')
+                                            yylval.char_value = (char)decode_escape(yytext + 1, &consumed);
+                                        else
+                                            yylval.char_value = yytext[1];
+                                        return CHAR_LITERAL;
+                                    }
+\"(\\.|[^"\\])*\"                   { 
+                                        int out_len = 0;
+                                        yylval.string_value = process_string_escapes(yytext + 1, yyleng - 2, &out_len);    // Freed after use in parser.
                                                                                         return STRING_LITERAL;
-                                        // Do we need to do this, or is yytext validity time sufficient?
-                                        // If we don't need, just do this.
-                                        // yytext[yyleng - 2] = '\0';
-                                        // yylval.string_value =  yytext + 1;
-
-                                        // Possible solution: Insert into symbol table, at end, loop over it and free strings.
                                     }
     /* Identifier. */
 [a-zA-Z_][a-zA-Z0-9_]*              { 
@@ -127,3 +129,80 @@ H   [0-9a-fA-F]
 .                                   printf("Unmatched: '%s'\n", yytext);
 
 %%
+
+/* Decode a single escape sequence starting at s (s[0] == '\\').
+   Sets *consumed to the number of input chars consumed (including backslash).
+   Supports: \n \t \r \v \b \f \a \\ \' \" \? \0 \xNN... \NNN (octal, up to 3). */
+static int decode_escape(const char *s, int *consumed)
+{
+    *consumed = 2;
+    switch (s[1])
+    {
+    case 'n':  return '\n';
+    case 't':  return '\t';
+    case 'r':  return '\r';
+    case 'v':  return '\v';
+    case 'b':  return '\b';
+    case 'f':  return '\f';
+    case 'a':  return '\a';
+    case '\\': return '\\';
+    case '\'': return '\'';
+    case '"':  return '"';
+    case '?':  return '?';
+    case '0': case '1': case '2': case '3':
+    case '4': case '5': case '6': case '7':
+    {
+        int val = 0, i = 1;
+        while (i <= 3 && s[i] >= '0' && s[i] <= '7')
+        {
+            val = val * 8 + (s[i] - '0');
+            i++;
+        }
+        *consumed = i;
+        return val & 0xFF;
+    }
+    case 'x':
+    {
+        int val = 0, i = 2;
+        while ((s[i] >= '0' && s[i] <= '9') ||
+               (s[i] >= 'a' && s[i] <= 'f') ||
+               (s[i] >= 'A' && s[i] <= 'F'))
+        {
+            int d = (s[i] <= '9') ? (s[i] - '0')
+                   : (s[i] <= 'F') ? (s[i] - 'A' + 10)
+                   : (s[i] - 'a' + 10);
+            val = val * 16 + d;
+            i++;
+        }
+        *consumed = i;
+        return val & 0xFF;
+    }
+    default:
+        fprintf(stderr, "Warning: unknown escape sequence '\\%c'\n", s[1]);
+        return s[1];
+    }
+}
+
+/* Translate a string body (between the quotes) of given length, returning a
+   newly malloc'd, NUL-terminated C string. Caller owns the buffer. */
+static char *process_string_escapes(const char *src, int len, int *out_len)
+{
+    char *out = malloc(len + 1);
+    int oi = 0;
+    for (int i = 0; i < len; )
+    {
+        if (src[i] == '\\' && i + 1 < len)
+        {
+            int consumed = 0;
+            out[oi++] = (char)decode_escape(src + i, &consumed);
+            i += consumed;
+        }
+        else
+        {
+            out[oi++] = src[i++];
+        }
+    }
+    out[oi] = '\0';
+    if (out_len) *out_len = oi;
+    return out;
+}

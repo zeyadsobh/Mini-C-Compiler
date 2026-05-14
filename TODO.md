@@ -14,5 +14,4 @@
 - remove hacky code done for uni submission
 - fix scope leak for for initializer
 - move symbol table inserts to lexer
-- string quote escapes and other escape characters, for char too
 - recheck all conditional jumps
