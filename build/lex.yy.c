@@ -1,6 +1,6 @@
-#line 1 "build/lex.yy.c"
+#line 2 "build/lex.yy.c"
 
-#line 3 "build/lex.yy.c"
+#line 4 "build/lex.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -624,9 +624,9 @@ char *yytext;
 #line 1 "src/lexer.l"
 #line 2 "src/lexer.l"
     #include "y.tab.h"
-#line 627 "build/lex.yy.c"
+#line 628 "build/lex.yy.c"
 #define YY_NO_INPUT 1
-#line 629 "build/lex.yy.c"
+#line 630 "build/lex.yy.c"
 
 #define INITIAL 0
 
@@ -847,7 +847,7 @@ YY_DECL
 #line 14 "src/lexer.l"
     /* Comments and whitespace ignored. */
     /* TODO: Fix comments ending with '**\/' not ending. */
-#line 850 "build/lex.yy.c"
+#line 851 "build/lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -1353,7 +1353,7 @@ YY_RULE_SETUP
 #line 130 "src/lexer.l"
 ECHO;
 	YY_BREAK
-#line 1356 "build/lex.yy.c"
+#line 1357 "build/lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 	yyterminate();
 
