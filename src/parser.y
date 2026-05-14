@@ -262,10 +262,10 @@ iteration_statement     : WHILE LPAREN expression RPAREN statement              
                         | FOR LPAREN expression SEMICOLON expression SEMICOLON RPAREN statement             { $$ = for_node($3, $5, NULL, $8); }
                         | FOR LPAREN expression SEMICOLON SEMICOLON expression RPAREN statement             { $$ = for_node($3, NULL, $6, $8); }
                         | FOR LPAREN expression SEMICOLON SEMICOLON RPAREN statement                        { $$ = for_node($3, NULL, NULL, $7); }
-                        | FOR LPAREN declaration SEMICOLON expression SEMICOLON expression RPAREN statement { $$ = for_node($3, $5, $7, $9); }
-                        | FOR LPAREN declaration SEMICOLON expression SEMICOLON RPAREN statement            { $$ = for_node($3, $5, NULL, $8); }
-                        | FOR LPAREN declaration SEMICOLON SEMICOLON expression RPAREN statement            { $$ = for_node($3, NULL, $6, $8); }
-                        | FOR LPAREN declaration SEMICOLON SEMICOLON RPAREN statement                       { $$ = for_node($3, NULL, NULL, $7); }
+                        | FOR LPAREN { scope_down(); } declaration SEMICOLON expression SEMICOLON expression RPAREN statement { $$ = for_node($4, $6, $8, $10); scope_up(); }
+                        | FOR LPAREN { scope_down(); } declaration SEMICOLON expression SEMICOLON RPAREN statement            { $$ = for_node($4, $6, NULL, $9); scope_up(); }
+                        | FOR LPAREN { scope_down(); } declaration SEMICOLON SEMICOLON expression RPAREN statement            { $$ = for_node($4, NULL, $7, $9); scope_up(); }
+                        | FOR LPAREN { scope_down(); } declaration SEMICOLON SEMICOLON RPAREN statement                       { $$ = for_node($4, NULL, NULL, $8); scope_up(); }
                         | FOR LPAREN SEMICOLON expression SEMICOLON expression RPAREN statement             { $$ = for_node(NULL, $4, $6, $8); }
                         | FOR LPAREN SEMICOLON expression SEMICOLON RPAREN statement                        { $$ = for_node(NULL, $4, NULL, $7); }
                         | FOR LPAREN SEMICOLON SEMICOLON expression RPAREN statement                        { $$ = for_node(NULL, NULL, $5, $7); }
