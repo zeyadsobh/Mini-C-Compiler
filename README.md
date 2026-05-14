@@ -17,3 +17,13 @@ Major differences include:
     make
     ./bin/compiler.exe examples/fibonacci.c
 ```
+
+## Running tests
+
+```shell
+    make test
+```
+
+Runs the suite in `tests/`:
+- All `examples/*.c` (except `source.c`) are expected to compile and emit `Code generation complete`.
+- All `tests/parse_fail/*.c` are expected to produce the error substring found in the matching `.err` file.

@@ -31,3 +31,8 @@ clean:
 
 maintainer-clean:
 	rm -fr bin build
+
+test: $(EXECUTABLE)
+	@bash tests/run_tests.sh
+
+.PHONY: all clean maintainer-clean test
