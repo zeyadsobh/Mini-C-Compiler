@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 extern int yyparse();
 extern FILE *yyin;
@@ -15,6 +16,12 @@ extern char *get_error_message();
 extern int yylineno;
 
 _Bool errored = 0;
+static _Bool verbose = 0;
+
+static _Bool is_verbose_flag(const char *arg)
+{
+    return strcmp(arg, "-v") == 0 || strcmp(arg, "--verbose") == 0;
+}
 
 int yyerror(char *error)
 {
@@ -29,16 +36,34 @@ int yyerror(char *error)
 
 int main(int argc, char **argv)
 {
-    if (argc != 2)
+    const char *input_filename = NULL;
+    for (int i = 1; i < argc; i++)
     {
-        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
+        if (is_verbose_flag(argv[i]))
+        {
+            verbose = 1;
+        }
+        else if (input_filename == NULL)
+        {
+            input_filename = argv[i];
+        }
+        else
+        {
+            fprintf(stderr, "Usage: %s <filename> [-v|--verbose]\n", argv[0]);
+            return 1;
+        }
+    }
+
+    if (input_filename == NULL)
+    {
+        fprintf(stderr, "Usage: %s <filename> [-v|--verbose]\n", argv[0]);
         return 1;
     }
 
-    yyin = fopen(argv[1], "r");
+    yyin = fopen(input_filename, "r");
     if (yyin == NULL)
     {
-        fprintf(stderr, "Error: Could not open file %s\n", argv[1]);
+        fprintf(stderr, "Error: Could not open file %s\n", input_filename);
         return 1;
     }
 
@@ -46,13 +71,13 @@ int main(int argc, char **argv)
 
     scope_down();
 
-    printf("Parsing...\n");
+    if (verbose) printf("Parsing...\n");
 
     yyparse();
 
     fclose(yyin);
 
-    printf("Parsing complete.\n");
+    if (verbose) printf("Parsing complete.\n");
 
     if (!errored)
     {
@@ -68,13 +93,13 @@ int main(int argc, char **argv)
 
         fclose(output_file);
 
-        printf("\nCode generation complete.\n");
+        if (verbose) printf("\nCode generation complete.\n");
     }
 
     destroy_global_table();
     destroy_program();
 
-    printf("\nCleanup successful.\n");
+    if (verbose) printf("\nCleanup successful.\n");
 
     return 0;
 }
