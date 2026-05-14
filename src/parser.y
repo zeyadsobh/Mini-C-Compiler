@@ -258,18 +258,23 @@ switch_case             : CASE ternary_expression COLON block_item_list         
 
 iteration_statement     : WHILE LPAREN expression RPAREN statement                                          { $$ = while_node($3, $5); }
                         | DO statement WHILE LPAREN expression RPAREN SEMICOLON                             { $$ = do_while_node($5, $2); }
-                        | FOR LPAREN expression SEMICOLON expression SEMICOLON expression RPAREN statement  { $$ = for_node($3, $5, $7, $9); }
-                        | FOR LPAREN expression SEMICOLON expression SEMICOLON RPAREN statement             { $$ = for_node($3, $5, NULL, $8); }
-                        | FOR LPAREN expression SEMICOLON SEMICOLON expression RPAREN statement             { $$ = for_node($3, NULL, $6, $8); }
-                        | FOR LPAREN expression SEMICOLON SEMICOLON RPAREN statement                        { $$ = for_node($3, NULL, NULL, $7); }
-                        | FOR LPAREN declaration SEMICOLON expression SEMICOLON expression RPAREN statement { $$ = for_node($3, $5, $7, $9); }
-                        | FOR LPAREN declaration SEMICOLON expression SEMICOLON RPAREN statement            { $$ = for_node($3, $5, NULL, $8); }
-                        | FOR LPAREN declaration SEMICOLON SEMICOLON expression RPAREN statement            { $$ = for_node($3, NULL, $6, $8); }
-                        | FOR LPAREN declaration SEMICOLON SEMICOLON RPAREN statement                       { $$ = for_node($3, NULL, NULL, $7); }
-                        | FOR LPAREN SEMICOLON expression SEMICOLON expression RPAREN statement             { $$ = for_node(NULL, $4, $6, $8); }
-                        | FOR LPAREN SEMICOLON expression SEMICOLON RPAREN statement                        { $$ = for_node(NULL, $4, NULL, $7); }
-                        | FOR LPAREN SEMICOLON SEMICOLON expression RPAREN statement                        { $$ = for_node(NULL, NULL, $5, $7); }
-                        | FOR LPAREN SEMICOLON SEMICOLON RPAREN statement                                   { $$ = for_node(NULL, NULL, NULL, $6); }
+                        | for_open expression SEMICOLON expression SEMICOLON expression RPAREN statement    { scope_up(); $$ = for_node($2, $4, $6, $8); }
+                        | for_open expression SEMICOLON expression SEMICOLON RPAREN statement               { scope_up(); $$ = for_node($2, $4, NULL, $7); }
+                        | for_open expression SEMICOLON SEMICOLON expression RPAREN statement               { scope_up(); $$ = for_node($2, NULL, $5, $7); }
+                        | for_open expression SEMICOLON SEMICOLON RPAREN statement                          { scope_up(); $$ = for_node($2, NULL, NULL, $6); }
+                        | for_open declaration SEMICOLON expression SEMICOLON expression RPAREN statement   { scope_up(); $$ = for_node($2, $4, $6, $8); }
+                        | for_open declaration SEMICOLON expression SEMICOLON RPAREN statement              { scope_up(); $$ = for_node($2, $4, NULL, $7); }
+                        | for_open declaration SEMICOLON SEMICOLON expression RPAREN statement              { scope_up(); $$ = for_node($2, NULL, $5, $7); }
+                        | for_open declaration SEMICOLON SEMICOLON RPAREN statement                         { scope_up(); $$ = for_node($2, NULL, NULL, $6); }
+                        | for_open SEMICOLON expression SEMICOLON expression RPAREN statement               { scope_up(); $$ = for_node(NULL, $3, $5, $7); }
+                        | for_open SEMICOLON expression SEMICOLON RPAREN statement                          { scope_up(); $$ = for_node(NULL, $3, NULL, $6); }
+                        | for_open SEMICOLON SEMICOLON expression RPAREN statement                          { scope_up(); $$ = for_node(NULL, NULL, $4, $6); }
+                        | for_open SEMICOLON SEMICOLON RPAREN statement                                     { scope_up(); $$ = for_node(NULL, NULL, NULL, $5); }
+                        ;
+
+    /* Opens a new scope so declarations and identifiers in the for-header
+       are local to the loop (matches C99 for-loop scoping). */
+for_open                : FOR LPAREN                                            { scope_down(); }
                         ;
 
     /* Jump statements are ones which affect control flow. */

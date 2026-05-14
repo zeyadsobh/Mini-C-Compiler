@@ -12,6 +12,5 @@
 - at some point, implement own lexer and parser
 - refactor quadruples.c
 - remove hacky code done for uni submission
-- fix scope leak for for initializer
 - move symbol table inserts to lexer
 - recheck all conditional jumps
