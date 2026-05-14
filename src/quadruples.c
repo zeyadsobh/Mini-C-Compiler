@@ -259,12 +259,18 @@ char *_condition(struct AST_Node *condition)
     case NODE_TYPE_FLOAT:
         fprintf(output_file, "CMP %f, 1\n", condition->float_value);
         break;
-    case NODE_TYPE_CHAR:
-        fprintf(output_file, "CMP '%c', 1\n", condition->char_value);
+    case NODE_TYPE_CHAR: {
+        char *esc = reescape_for_asm(&condition->char_value, 1);
+        fprintf(output_file, "CMP '%s', 1\n", esc);
+        free(esc);
         break;
-    case NODE_TYPE_STRING:
-        fprintf(output_file, "CMP \"%s\", 1\n", condition->string_value);
+    }
+    case NODE_TYPE_STRING: {
+        char *esc = reescape_for_asm(condition->string_value, strlen(condition->string_value));
+        fprintf(output_file, "CMP \"%s\", 1\n", esc);
+        free(esc);
         break;
+    }
     case NODE_TYPE_BOOL:
         fprintf(output_file, "CMP %d, 1\n", condition->bool_value);
         break;
@@ -397,12 +403,18 @@ char *_node(struct AST_Node *statement, _Bool left, _Bool ternary, int label, in
     case NODE_TYPE_FLOAT:
         asprintf(&ret, "%f", statement->float_value);
         break;
-    case NODE_TYPE_CHAR:
-        asprintf(&ret, "'%c'", statement->char_value);
+    case NODE_TYPE_CHAR: {
+        char *esc = reescape_for_asm(&statement->char_value, 1);
+        asprintf(&ret, "'%s'", esc);
+        free(esc);
         break;
-    case NODE_TYPE_STRING:
-        asprintf(&ret, "\"%s\"", statement->string_value);
+    }
+    case NODE_TYPE_STRING: {
+        char *esc = reescape_for_asm(statement->string_value, strlen(statement->string_value));
+        asprintf(&ret, "\"%s\"", esc);
+        free(esc);
         break;
+    }
     case NODE_TYPE_BOOL:
         ret = statement->bool_value ? "1" : "0";
         break;

@@ -1,4 +1,5 @@
 %{
+    #include "helpers.h"
     #include "y.tab.h"
 %}
 
@@ -103,18 +104,23 @@ H   [0-9a-fA-F]
 0[xX]{H}+\.?[pP][+-]?{H}+           { yylval.float_value = strtod(yytext, NULL);         return FLOAT_LITERAL; }
 0[xX]{H}*\.{H}+[pP][+-]?{H}+        { yylval.float_value = strtod(yytext, NULL);         return FLOAT_LITERAL; }
 
-\'[^']\'                            { yylval.char_value = yytext[1];                     return CHAR_LITERAL; }
-\"[^"]*\"                           { 
-                                        yylval.string_value = malloc(yyleng);    // Freed after use in parser.
-                                        strncpy(yylval.string_value, yytext + 1, yyleng - 2);
-                                        yylval.string_value[yyleng - 2] = '\0';
-                                                                                        return STRING_LITERAL;
-                                        // Do we need to do this, or is yytext validity time sufficient?
-                                        // If we don't need, just do this.
-                                        // yytext[yyleng - 2] = '\0';
-                                        // yylval.string_value =  yytext + 1;
-
-                                        // Possible solution: Insert into symbol table, at end, loop over it and free strings.
+\'(\\.|[^'\\\n])+\'              {
+                                        char c;
+                                        if (unescape_char(yytext, yyleng, &c) != 0) {
+                                            yyerror("Invalid character literal");
+                                            return 0;
+                                        }
+                                        yylval.char_value = c;
+                                        return CHAR_LITERAL;
+                                    }
+\"(\\.|[^"\\\n])*\"              {
+                                        char *s = unescape_string(yytext, yyleng);
+                                        if (s == NULL) {
+                                            yyerror("Invalid string literal");
+                                            return 0;
+                                        }
+                                        yylval.string_value = s;
+                                        return STRING_LITERAL;
                                     }
     /* Identifier. */
 [a-zA-Z_][a-zA-Z0-9_]*              { 
